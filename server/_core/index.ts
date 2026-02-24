@@ -109,6 +109,8 @@ async function startServer() {
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
+    console.log(`[ENV] GOOGLE_CLIENT_ID: ${ENV.googleClientId ? "set" : "MISSING"}`);
+    console.log(`[ENV] DATABASE_URL: ${ENV.databaseUrl ? "set" : "MISSING"}`);
   });
 }
 
