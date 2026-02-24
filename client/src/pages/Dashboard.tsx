@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Link, useLocation } from "wouter";
-import { ArrowDown, ArrowUp, Plus, AlertTriangle } from "lucide-react";
+import { ArrowDown, ArrowUp, Plus, AlertTriangle, LogOut } from "lucide-react";
 import { motion } from "framer-motion";
 import { FinancialProgressChart } from "@/components/FinancialProgressChart";
 
 export default function Dashboard() {
-  const { user, loading } = useAuth();
+  const { user, loading, logout } = useAuth();
   const [, setLocation] = useLocation();
   
   const { data: buckets, refetch: refetchBuckets } = trpc.buckets.list.useQuery();
@@ -100,7 +100,7 @@ export default function Dashboard() {
                 Welcome back, {user?.name || "there"}
               </p>
             </motion.div>
-            <nav className="flex gap-4">
+            <nav className="flex items-center gap-4">
               <Link href="/timeline">
                 <Button variant="ghost">Timeline</Button>
               </Link>
@@ -116,6 +116,9 @@ export default function Dashboard() {
               <Link href="/journey">
                 <Button variant="ghost">Journey</Button>
               </Link>
+              <Button variant="ghost" size="icon" onClick={logout} title="Sign out">
+                <LogOut className="h-4 w-4" />
+              </Button>
             </nav>
           </div>
         </div>
