@@ -1,0 +1,1 @@
+ALTER TABLE `habitCompletions` ADD `transactionId` int;
