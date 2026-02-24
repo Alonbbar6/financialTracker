@@ -93,13 +93,14 @@ export default function Paywall() {
         <Card className="border-2 border-primary shadow-soft-lg">
           <CardHeader className="pb-2 pt-5 text-center">
             <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">
-              One-Time Purchase
+              Free Trial
             </p>
             <div className="flex items-baseline justify-center gap-1">
-              <span className="text-5xl font-bold">$7.99</span>
+              <span className="text-5xl font-bold">1 Month</span>
             </div>
+            <p className="text-sm font-medium text-primary mt-1">Free</p>
             <p className="text-xs text-muted-foreground mt-1">
-              Buy once, own forever. No subscriptions.
+              Then $4.99/month — cancel anytime
             </p>
           </CardHeader>
           <CardContent className="pb-5">
@@ -109,7 +110,7 @@ export default function Paywall() {
               className="w-full bg-brand-gradient text-white hover:opacity-90 transition-opacity font-semibold"
               size="lg"
             >
-              {isPurchasing ? "Processing..." : "Buy Now — $7.99"}
+              {isPurchasing ? "Processing..." : "Start Free Trial"}
             </Button>
           </CardContent>
         </Card>
@@ -124,8 +125,10 @@ export default function Paywall() {
             {isRestoring ? "Restoring..." : "Restore Purchase"}
           </button>
           <p className="text-xs text-muted-foreground px-2 leading-relaxed">
-            Payment will be charged to your Apple ID at confirmation.
-            The purchase is non-refundable except as required by law.
+            1 month free trial, then $4.99/month. Payment will be charged to your
+            Apple ID after the free trial unless cancelled at least 24 hours before
+            the end of the trial period. Subscriptions may be managed and
+            auto-renewal turned off in your Apple ID Account Settings.
           </p>
         </div>
       </motion.div>

@@ -11,8 +11,8 @@ import { trpc } from "@/lib/trpc";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-/** Non-consumable product ID — must match App Store Connect exactly. */
-export const PURCHASE_PRODUCT_ID = "com.quintave.app.unlock";
+/** Auto-renewable subscription product ID — must match App Store Connect exactly. */
+export const PURCHASE_PRODUCT_ID = "com.quintave.app.monthly";
 
 /** RevenueCat entitlement identifier. */
 export const ENTITLEMENT_ID = "pro";
@@ -104,7 +104,7 @@ export function PurchaseProvider({ children }: { children: React.ReactNode }) {
   const purchase = useCallback(async () => {
     const { Purchases } = await import("@revenuecat/purchases-capacitor");
 
-    const { offerings } = await Purchases.getOfferings();
+    const offerings = await Purchases.getOfferings();
     const currentOffering = offerings.current;
     if (!currentOffering) throw new Error("No offerings available");
 
