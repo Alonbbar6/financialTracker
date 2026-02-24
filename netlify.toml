@@ -1,0 +1,12 @@
+[build]
+  command   = "pnpm build:app"
+  publish   = "dist/public"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# Single-page app: redirect all routes to index.html
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200
