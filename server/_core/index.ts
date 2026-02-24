@@ -1,4 +1,5 @@
 import "dotenv/config";
+import cors from "cors";
 import express from "express";
 import { createServer } from "http";
 import net from "net";
@@ -9,6 +10,16 @@ import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import * as db from "../db";
 import { ENV } from "./env";
+
+const ALLOWED_ORIGINS = [
+  // Local dev
+  /^http:\/\/localhost(:\d+)?$/,
+  /^http:\/\/127\.0\.0\.1(:\d+)?$/,
+  // Netlify frontend
+  "https://financalapptracker.netlify.app",
+  // Capacitor native WebView
+  "capacitor://localhost",
+];
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -32,6 +43,21 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function startServer() {
   const app = express();
   const server = createServer(app);
+
+  app.use(
+    cors({
+      origin: (origin, callback) => {
+        // Allow requests with no origin (curl, mobile apps, same-origin)
+        if (!origin) return callback(null, true);
+        const allowed = ALLOWED_ORIGINS.some(o =>
+          typeof o === "string" ? o === origin : o.test(origin)
+        );
+        callback(allowed ? null : new Error("Not allowed by CORS"), allowed);
+      },
+      credentials: true,
+    })
+  );
+
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
