@@ -1,6 +1,5 @@
 import "dotenv/config";
-import cors from "cors";
-import express from "express";
+import express, { type Request, type Response, type NextFunction } from "express";
 import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
@@ -20,6 +19,29 @@ const ALLOWED_ORIGINS = [
   // Capacitor native WebView
   "capacitor://localhost",
 ];
+
+function isOriginAllowed(origin: string | undefined): boolean {
+  if (!origin) return true;
+  return ALLOWED_ORIGINS.some(o =>
+    typeof o === "string" ? o === origin : o.test(origin)
+  );
+}
+
+function corsMiddleware(req: Request, res: Response, next: NextFunction) {
+  const origin = req.headers.origin;
+  if (isOriginAllowed(origin)) {
+    if (origin) res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type,trpc-accept");
+    res.setHeader("Vary", "Origin");
+  }
+  if (req.method === "OPTIONS") {
+    res.sendStatus(204);
+    return;
+  }
+  next();
+}
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -44,19 +66,7 @@ async function startServer() {
   const app = express();
   const server = createServer(app);
 
-  app.use(
-    cors({
-      origin: (origin, callback) => {
-        // Allow requests with no origin (curl, mobile apps, same-origin)
-        if (!origin) return callback(null, true);
-        const allowed = ALLOWED_ORIGINS.some(o =>
-          typeof o === "string" ? o === origin : o.test(origin)
-        );
-        callback(allowed ? null : new Error("Not allowed by CORS"), allowed);
-      },
-      credentials: true,
-    })
-  );
+  app.use(corsMiddleware);
 
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
