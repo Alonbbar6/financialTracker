@@ -1,7 +1,8 @@
 import { eq, and, desc, sql, gte, lte } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { 
-  InsertUser, users, 
+import mysql from "mysql2/promise";
+import {
+  InsertUser, users,
   buckets, InsertBucket, Bucket,
   transactions, InsertTransaction, Transaction,
   goals, InsertGoal, Goal,
@@ -16,7 +17,16 @@ let _db: ReturnType<typeof drizzle> | null = null;
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      // Use a connection pool so dropped connections (ECONNRESET from Railway)
+      // are automatically replaced instead of crashing the request.
+      const pool = mysql.createPool({
+        uri: process.env.DATABASE_URL,
+        waitForConnections: true,
+        connectionLimit: 5,
+        enableKeepAlive: true,
+        keepAliveInitialDelay: 10000,
+      });
+      _db = drizzle(pool);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
