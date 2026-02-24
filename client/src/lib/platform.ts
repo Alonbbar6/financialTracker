@@ -25,7 +25,9 @@ export function getApiBaseUrl(): string {
     }
     return nativeUrl;
   }
-  return "";
+  // On web, if the frontend is hosted separately from the backend (e.g. Netlify + Railway),
+  // use the explicit API URL. Falls back to "" (relative) for local dev where they share an origin.
+  return import.meta.env.VITE_API_BASE_URL ?? "";
 }
 
 /** Full tRPC endpoint URL, platform-aware. */
