@@ -5,15 +5,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Link, useLocation } from "wouter";
-import { ArrowDown, ArrowUp, Plus, AlertTriangle, LogOut } from "lucide-react";
+import { ArrowDown, ArrowUp, Plus, AlertTriangle, LogOut, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import { FinancialProgressChart } from "@/components/FinancialProgressChart";
+import { getLoginUrl } from "@/const";
+import { isNative } from "@/lib/platform";
+import { usePurchase } from "@/contexts/PurchaseContext";
 
 export default function Dashboard() {
   const { user, loading, logout } = useAuth();
   const [, setLocation] = useLocation();
-  
-  const { data: buckets, refetch: refetchBuckets } = trpc.buckets.list.useQuery();
+  const { trialActive, trialDaysRemaining, hasPurchased } = usePurchase();
+
+  const { data: buckets } = trpc.buckets.list.useQuery();
   const { data: transactions } = trpc.transactions.list.useQuery();
 
   // Check onboarding status
@@ -32,13 +36,28 @@ export default function Dashboard() {
   }
 
   if (!user) {
+    const handleSignIn = async () => {
+      const url = getLoginUrl();
+      if (isNative) {
+        const { Browser } = await import("@capacitor/browser");
+        await Browser.open({ url });
+      } else {
+        window.location.href = url;
+      }
+    };
+
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="max-w-md w-full shadow-soft">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl font-bold">Quintave</CardTitle>
-            <CardDescription>Please sign in to access your finance dashboard.</CardDescription>
+            <CardDescription>Sign in to access your finance dashboard.</CardDescription>
           </CardHeader>
+          <CardContent className="flex justify-center pb-6">
+            <Button onClick={handleSignIn} className="bg-brand-gradient text-white hover:opacity-90">
+              Sign in with Google
+            </Button>
+          </CardContent>
         </Card>
       </div>
     );
@@ -86,42 +105,60 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b bg-card">
-        <div className="container py-6">
-          <div className="flex items-center justify-between flex-wrap gap-4">
+      <header className="border-b bg-card safe-area-top">
+        <div className="container py-4">
+          <div className="flex items-center justify-between gap-3">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
+              className="min-w-0"
             >
-              <h1 className="text-3xl font-bold bg-brand-gradient bg-clip-text text-transparent">
+              <h1 className="text-2xl font-bold bg-brand-gradient bg-clip-text text-transparent">
                 Quintave
               </h1>
-              <p className="text-muted-foreground mt-1">
-                Welcome back, {user?.name || "there"}
+              <p className="text-muted-foreground text-sm truncate">
+                {user?.name || "Welcome"}
               </p>
             </motion.div>
-            <nav className="flex items-center gap-4">
+            <nav className="flex items-center gap-1 overflow-x-auto shrink-0 max-w-[65vw]" style={{ scrollbarWidth: "none" }}>
               <Link href="/timeline">
-                <Button variant="ghost">Timeline</Button>
+                <Button variant="ghost" size="sm" className="whitespace-nowrap text-xs px-2">Timeline</Button>
               </Link>
               <Link href="/transactions">
-                <Button variant="ghost">Transactions</Button>
+                <Button variant="ghost" size="sm" className="whitespace-nowrap text-xs px-2">Transactions</Button>
               </Link>
               <Link href="/goals">
-                <Button variant="ghost">Goals</Button>
+                <Button variant="ghost" size="sm" className="whitespace-nowrap text-xs px-2">Goals</Button>
               </Link>
               <Link href="/habits">
-                <Button variant="ghost">Habits</Button>
+                <Button variant="ghost" size="sm" className="whitespace-nowrap text-xs px-2">Habits</Button>
               </Link>
               <Link href="/journey">
-                <Button variant="ghost">Journey</Button>
+                <Button variant="ghost" size="sm" className="whitespace-nowrap text-xs px-2">Journey</Button>
               </Link>
-              <Button variant="ghost" size="icon" onClick={logout} title="Sign out">
+              <Button variant="ghost" size="icon" onClick={logout} title="Sign out" className="shrink-0">
                 <LogOut className="h-4 w-4" />
               </Button>
             </nav>
           </div>
         </div>
+
+        {/* Trial banner — shown on native while trial is still active and not yet subscribed */}
+        {isNative && trialActive && !hasPurchased && (
+          <div className="border-t border-primary/20 bg-primary/5">
+            <div className="container py-2 flex items-center justify-between gap-2">
+              <p className="text-xs text-primary font-medium">
+                {trialDaysRemaining} day{trialDaysRemaining !== 1 ? "s" : ""} left in your free trial
+              </p>
+              <Link href="/subscribe">
+                <Button size="sm" className="bg-brand-gradient text-white h-7 text-xs px-3 shrink-0">
+                  <Sparkles className="h-3 w-3 mr-1" />
+                  Subscribe
+                </Button>
+              </Link>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Main Content */}

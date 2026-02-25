@@ -3,8 +3,9 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { usePurchase } from "@/contexts/PurchaseContext";
-import { TrendingUp, Target, Shield, BookOpen, CheckCircle } from "lucide-react";
+import { TrendingUp, Target, Shield, BookOpen, CheckCircle, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import { useLocation } from "wouter";
 
 const FEATURES = [
   { icon: TrendingUp, text: "Track every dollar across 5 smart buckets" },
@@ -15,7 +16,8 @@ const FEATURES = [
 ];
 
 export default function Paywall() {
-  const { purchase, restore } = usePurchase();
+  const { purchase, restore, trialActive } = usePurchase();
+  const [, setLocation] = useLocation();
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
 
@@ -54,6 +56,17 @@ export default function Paywall() {
         transition={{ duration: 0.4 }}
         className="w-full max-w-sm space-y-6"
       >
+        {/* Back button — only when user navigated here voluntarily during trial */}
+        {trialActive && (
+          <button
+            onClick={() => setLocation("/")}
+            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Dashboard
+          </button>
+        )}
+
         {/* Header */}
         <div className="text-center space-y-3">
           <motion.div
@@ -66,7 +79,9 @@ export default function Paywall() {
           </motion.div>
           <h1 className="text-3xl font-bold tracking-tight">Quintave</h1>
           <p className="text-muted-foreground text-sm">
-            Your free trial has ended. Subscribe to keep going.
+            {trialActive
+              ? "Unlock the full Quintave experience."
+              : "Your free trial has ended. Subscribe to keep going."}
           </p>
         </div>
 

@@ -28,7 +28,8 @@ export function registerOAuthRoutes(app: Express) {
     }
 
     const redirectUri = getRedirectUri(req);
-    const state = btoa(redirectUri);
+    const platform = getQueryParam(req, "platform") ?? "web";
+    const state = Buffer.from(JSON.stringify({ redirectUri, platform })).toString("base64");
 
     const url = new URL("https://accounts.google.com/o/oauth2/v2/auth");
     url.searchParams.set("client_id", ENV.googleClientId);
@@ -53,7 +54,9 @@ export function registerOAuthRoutes(app: Express) {
     }
 
     try {
-      const redirectUri = Buffer.from(state, "base64").toString("utf-8");
+      const stateData = JSON.parse(Buffer.from(state, "base64").toString("utf-8"));
+      const redirectUri: string = stateData.redirectUri ?? Buffer.from(state, "base64").toString("utf-8");
+      const platform: string = stateData.platform ?? "web";
 
       // Exchange authorization code for access token
       const tokenRes = await axios.post<{ access_token: string }>(
@@ -102,13 +105,9 @@ export function registerOAuthRoutes(app: Express) {
       });
 
       // Native app: redirect via deep link; web: redirect to root
-      const apiBaseUrl = process.env.VITE_API_BASE_URL ?? "";
-      const isNativeCallback =
-        apiBaseUrl !== "" && redirectUri.startsWith(apiBaseUrl);
-
       res.redirect(
         302,
-        isNativeCallback ? "quintave://oauth/callback?success=true" : "/"
+        platform === "native" ? "quintave://oauth/callback?success=true" : "/"
       );
     } catch (error) {
       console.error("[OAuth] Google callback failed", error);

@@ -6,5 +6,6 @@ import { isNative, getApiBaseUrl } from "./lib/platform";
 // On native: absolute path to the hosted backend.
 export const getLoginUrl = () => {
   const base = isNative ? getApiBaseUrl() : "";
-  return `${base}/api/oauth/google`;
+  // platform=native tells the server to redirect back via quintave:// deep link
+  return `${base}/api/oauth/google${isNative ? "?platform=native" : ""}`;
 };
