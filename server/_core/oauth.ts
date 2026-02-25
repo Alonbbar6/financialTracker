@@ -104,10 +104,13 @@ export function registerOAuthRoutes(app: Express) {
         maxAge: ONE_YEAR_MS,
       });
 
-      // Native app: redirect via deep link; web: redirect to root
+      // Native app: embed the JWT in the deep link so WKWebView (separate cookie
+      // store from SFSafariViewController) can authenticate without a cookie.
       res.redirect(
         302,
-        platform === "native" ? "quintave://oauth/callback?success=true" : "/"
+        platform === "native"
+          ? `quintave://oauth/callback?token=${encodeURIComponent(sessionToken)}`
+          : "/"
       );
     } catch (error) {
       console.error("[OAuth] Google callback failed", error);

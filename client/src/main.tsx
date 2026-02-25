@@ -66,8 +66,18 @@ const trpcClient = trpc.createClient({
       url: getTrpcUrl(),
       transformer: superjson,
       fetch(input, init) {
+        // On native iOS, the session JWT is stored in localStorage (can't use
+        // SFSafariViewController cookies in WKWebView). Send it as Bearer token.
+        const nativeToken = localStorage.getItem("qt_token");
+        const headers: Record<string, string> = {
+          ...(init?.headers as Record<string, string> | undefined ?? {}),
+        };
+        if (nativeToken) {
+          headers["Authorization"] = `Bearer ${nativeToken}`;
+        }
         return globalThis.fetch(input, {
           ...(init ?? {}),
+          headers,
           credentials: "include",
         });
       },

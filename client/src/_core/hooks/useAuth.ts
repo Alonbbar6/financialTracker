@@ -47,6 +47,7 @@ export function useAuth(options?: UseAuthOptions) {
       }
       throw error;
     } finally {
+      localStorage.removeItem("qt_token");
       utils.auth.me.setData(undefined, null);
       await utils.auth.me.invalidate();
     }
@@ -84,8 +85,14 @@ export function useAuth(options?: UseAuthOptions) {
 
       const handle = await App.addListener("appUrlOpen", async event => {
         const url = new URL(event.url);
-        // quintave://oauth/callback is sent by the backend after setting the cookie
+        // quintave://oauth/callback?token=<JWT> is sent by the backend after OAuth
         if (url.host === "oauth" || url.pathname.includes("/oauth")) {
+          const token = url.searchParams.get("token");
+          if (token) {
+            // Store the JWT so tRPC fetch can send it as a Bearer header.
+            // WKWebView can't access the SFSafariViewController cookie store.
+            localStorage.setItem("qt_token", token);
+          }
           await Browser.close();
           await utils.auth.me.refetch();
         }

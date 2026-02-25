@@ -55,7 +55,16 @@ class SDKServer {
   async authenticateRequest(req: Request): Promise<User> {
     const cookies = this.parseCookies(req.headers.cookie);
     const sessionCookie = cookies.get(COOKIE_NAME);
-    const session = await this.verifySession(sessionCookie);
+
+    // On native iOS, WKWebView can't access cookies set in SFSafariViewController.
+    // The client stores the JWT in localStorage and sends it as a Bearer token.
+    const authHeader = req.headers.authorization;
+    const bearerToken =
+      typeof authHeader === "string" && authHeader.startsWith("Bearer ")
+        ? authHeader.slice(7)
+        : undefined;
+
+    const session = await this.verifySession(sessionCookie ?? bearerToken);
 
     if (!session) {
       throw ForbiddenError("Invalid session cookie");
