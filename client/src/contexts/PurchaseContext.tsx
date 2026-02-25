@@ -2,9 +2,7 @@ import React, {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
-  useState,
 } from "react";
 import { Capacitor } from "@capacitor/core";
 import { trpc } from "@/lib/trpc";
@@ -24,9 +22,12 @@ const RC_API_KEY_ANDROID = import.meta.env.VITE_REVENUECAT_ANDROID_KEY ?? "";
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface PurchaseContextType {
+  /** True if the user can access the app (trial active OR subscribed). */
+  hasAccess: boolean;
   hasPurchased: boolean;
+  trialDaysRemaining: number;
+  trialActive: boolean;
   isLoading: boolean;
-  isTrialEligible: boolean;
   purchase: () => Promise<void>;
   restore: () => Promise<void>;
 }
@@ -38,82 +39,34 @@ const PurchaseContext = createContext<PurchaseContextType | undefined>(undefined
 // ── Provider ──────────────────────────────────────────────────────────────────
 
 export function PurchaseProvider({ children }: { children: React.ReactNode }) {
-  const [hasPurchased, setHasPurchased] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isTrialEligible, setIsTrialEligible] = useState(true);
-
   const confirmMutation = trpc.purchase.confirm.useMutation();
 
-  // On web: rely on the server-side purchase status
+  // Server is the source of truth for both trial and purchase status.
+  // Trial is calculated from createdAt (30 days) — tied to Google account,
+  // so deleting and reinstalling the app does NOT reset the trial.
   const serverStatus = trpc.purchase.status.useQuery(undefined, {
-    enabled: !Capacitor.isNativePlatform(),
+    retry: false,
+    refetchOnWindowFocus: false,
   });
 
-  // Sync server status to local state (web path)
-  useEffect(() => {
-    if (!Capacitor.isNativePlatform() && !serverStatus.isLoading) {
-      setHasPurchased(serverStatus.data?.hasPurchased ?? false);
-      setIsLoading(false);
-    }
-  }, [serverStatus.data, serverStatus.isLoading]);
-
-  // Initialize RevenueCat and check entitlement (native path)
-  useEffect(() => {
-    if (!Capacitor.isNativePlatform()) return;
-
-    const init = async () => {
-      try {
-        const { Purchases, LOG_LEVEL } = await import("@revenuecat/purchases-capacitor");
-
-        const platform = Capacitor.getPlatform();
-        const apiKey = platform === "ios" ? RC_API_KEY_IOS : RC_API_KEY_ANDROID;
-
-        if (!apiKey) {
-          console.error("[Purchase] No RevenueCat API key for platform:", platform);
-          setIsLoading(false);
-          return;
-        }
-
-        await Purchases.configure({ apiKey });
-
-        if (import.meta.env.DEV) {
-          await Purchases.setLogLevel({ level: LOG_LEVEL.DEBUG });
-        }
-
-        await checkEntitlement();
-      } catch (err) {
-        console.error("[Purchase] Init failed:", err);
-        setIsLoading(false);
-      }
-    };
-
-    init();
-  }, []);
-
-  const checkEntitlement = useCallback(async () => {
-    try {
-      const { Purchases, INTRO_ELIGIBILITY_STATUS } = await import("@revenuecat/purchases-capacitor");
-      const { customerInfo } = await Purchases.getCustomerInfo();
-      const isActive = Boolean(customerInfo.entitlements.active[ENTITLEMENT_ID]);
-      setHasPurchased(isActive);
-
-      // Check if this Apple ID is still eligible for a free trial.
-      // Apple ties intro offers to the Apple ID — deleting and reinstalling
-      // does NOT reset eligibility. INELIGIBLE means they already used it.
-      const eligibilityMap = await Purchases.checkTrialOrIntroductoryPriceEligibility({
-        productIdentifiers: [PURCHASE_PRODUCT_ID],
-      });
-      const status = eligibilityMap[PURCHASE_PRODUCT_ID]?.status;
-      setIsTrialEligible(status !== INTRO_ELIGIBILITY_STATUS.INTRO_ELIGIBILITY_STATUS_INELIGIBLE);
-    } catch (err) {
-      console.error("[Purchase] Entitlement check failed:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const hasPurchased = serverStatus.data?.hasPurchased ?? false;
+  const trialActive = serverStatus.data?.trialActive ?? true;
+  const trialDaysRemaining = serverStatus.data?.trialDaysRemaining ?? 30;
+  const hasAccess = hasPurchased || trialActive;
+  const isLoading = serverStatus.isLoading;
 
   const purchase = useCallback(async () => {
-    const { Purchases } = await import("@revenuecat/purchases-capacitor");
+    const { Purchases, LOG_LEVEL } = await import("@revenuecat/purchases-capacitor");
+
+    const platform = Capacitor.getPlatform();
+    const apiKey = platform === "ios" ? RC_API_KEY_IOS : RC_API_KEY_ANDROID;
+
+    if (!apiKey) throw new Error("RevenueCat API key not configured");
+
+    await Purchases.configure({ apiKey });
+    if (import.meta.env.DEV) {
+      await Purchases.setLogLevel({ level: LOG_LEVEL.DEBUG });
+    }
 
     const offerings = await Purchases.getOfferings();
     const currentOffering = offerings.current;
@@ -128,30 +81,36 @@ export function PurchaseProvider({ children }: { children: React.ReactNode }) {
     const isActive = Boolean(customerInfo.entitlements.active[ENTITLEMENT_ID]);
 
     if (isActive) {
-      setHasPurchased(true);
-      // Sync to backend so the server also knows
       await confirmMutation.mutateAsync({
         revenueCatAppUserId: customerInfo.originalAppUserId,
       });
+      await serverStatus.refetch();
     }
-  }, [confirmMutation]);
+  }, [confirmMutation, serverStatus]);
 
   const restore = useCallback(async () => {
     const { Purchases } = await import("@revenuecat/purchases-capacitor");
+
+    const platform = Capacitor.getPlatform();
+    const apiKey = platform === "ios" ? RC_API_KEY_IOS : RC_API_KEY_ANDROID;
+    if (!apiKey) throw new Error("RevenueCat API key not configured");
+
+    await Purchases.configure({ apiKey });
+
     const { customerInfo } = await Purchases.restorePurchases();
     const isActive = Boolean(customerInfo.entitlements.active[ENTITLEMENT_ID]);
-    setHasPurchased(isActive);
 
     if (isActive) {
       await confirmMutation.mutateAsync({
         revenueCatAppUserId: customerInfo.originalAppUserId,
       });
+      await serverStatus.refetch();
     }
-  }, [confirmMutation]);
+  }, [confirmMutation, serverStatus]);
 
   const value = useMemo<PurchaseContextType>(
-    () => ({ hasPurchased, isLoading, isTrialEligible, purchase, restore }),
-    [hasPurchased, isLoading, isTrialEligible, purchase, restore]
+    () => ({ hasAccess, hasPurchased, trialActive, trialDaysRemaining, isLoading, purchase, restore }),
+    [hasAccess, hasPurchased, trialActive, trialDaysRemaining, isLoading, purchase, restore]
   );
 
   return (

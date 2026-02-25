@@ -36,11 +36,12 @@ function Router() {
 }
 
 /**
- * Shows the Paywall on native until the user has purchased.
- * On web the paywall is skipped — the web version has no IAP gate.
+ * Gates the app behind a 30-day free trial + subscription.
+ * Trial is tracked server-side (tied to Google account), so reinstalling
+ * the app does not reset it. Web users are never gated.
  */
 function PurchaseGuard({ children }: { children: React.ReactNode }) {
-  const { hasPurchased, isLoading } = usePurchase();
+  const { hasAccess, isLoading } = usePurchase();
 
   // Web: no paywall
   if (!Capacitor.isNativePlatform()) {
@@ -55,7 +56,7 @@ function PurchaseGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!hasPurchased) {
+  if (!hasAccess) {
     return <Paywall />;
   }
 

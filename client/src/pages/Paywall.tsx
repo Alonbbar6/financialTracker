@@ -15,7 +15,7 @@ const FEATURES = [
 ];
 
 export default function Paywall() {
-  const { purchase, restore, isTrialEligible } = usePurchase();
+  const { purchase, restore } = usePurchase();
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
 
@@ -23,10 +23,9 @@ export default function Paywall() {
     setIsPurchasing(true);
     try {
       await purchase();
-      toast.success("Purchase complete! Welcome to Quintave.");
+      toast.success("Subscribed! Welcome to Quintave.");
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Purchase failed";
-      // RevenueCat throws when the user cancels — don't show an error for that
       if (!message.includes("UserCancelled") && !message.includes("purchaseCancelled")) {
         toast.error(message);
       }
@@ -67,7 +66,7 @@ export default function Paywall() {
           </motion.div>
           <h1 className="text-3xl font-bold tracking-tight">Quintave</h1>
           <p className="text-muted-foreground text-sm">
-            Master your money with behavioural awareness
+            Your free trial has ended. Subscribe to keep going.
           </p>
         </div>
 
@@ -93,23 +92,14 @@ export default function Paywall() {
         <Card className="border-2 border-primary shadow-soft-lg">
           <CardHeader className="pb-2 pt-5 text-center">
             <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">
-              {isTrialEligible ? "Free Trial" : "Monthly"}
+              Monthly
             </p>
             <div className="flex items-baseline justify-center gap-1">
-              {isTrialEligible ? (
-                <span className="text-5xl font-bold">1 Month</span>
-              ) : (
-                <>
-                  <span className="text-4xl font-bold">$4.99</span>
-                  <span className="text-muted-foreground">/mo</span>
-                </>
-              )}
+              <span className="text-4xl font-bold">$4.99</span>
+              <span className="text-muted-foreground">/mo</span>
             </div>
-            {isTrialEligible && (
-              <p className="text-sm font-medium text-primary mt-1">Free</p>
-            )}
             <p className="text-xs text-muted-foreground mt-1">
-              {isTrialEligible ? "Then $4.99/month — cancel anytime" : "Cancel anytime"}
+              Cancel anytime
             </p>
           </CardHeader>
           <CardContent className="pb-5">
@@ -119,7 +109,7 @@ export default function Paywall() {
               className="w-full bg-brand-gradient text-white hover:opacity-90 transition-opacity font-semibold"
               size="lg"
             >
-              {isPurchasing ? "Processing..." : isTrialEligible ? "Start Free Trial" : "Subscribe — $4.99/mo"}
+              {isPurchasing ? "Processing..." : "Subscribe — $4.99/mo"}
             </Button>
           </CardContent>
         </Card>
@@ -134,11 +124,9 @@ export default function Paywall() {
             {isRestoring ? "Restoring..." : "Restore Purchase"}
           </button>
           <p className="text-xs text-muted-foreground px-2 leading-relaxed">
-            {isTrialEligible
-              ? "1 month free trial, then $4.99/month. Payment will be charged to your Apple ID after the free trial unless cancelled at least 24 hours before the end of the trial period."
-              : "Payment will be charged to your Apple ID. Subscription renews at $4.99/month unless cancelled at least 24 hours before the renewal date."
-            }{" "}
-            Subscriptions may be managed in your Apple ID Account Settings.
+            Payment will be charged to your Apple ID. Subscription renews at
+            $4.99/month unless cancelled at least 24 hours before the renewal
+            date. Subscriptions may be managed in your Apple ID Account Settings.
           </p>
         </div>
       </motion.div>

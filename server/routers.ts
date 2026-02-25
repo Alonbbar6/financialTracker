@@ -360,13 +360,23 @@ export const appRouter = router({
       }),
   }),
 
-  // One-time purchase status
+  // Purchase + trial status
   purchase: router({
-    // Get whether the current user has purchased the app
-    status: protectedProcedure.query(({ ctx }) => ({
-      hasPurchased: ctx.user.hasPurchased ?? false,
-      purchasedAt: ctx.user.purchasedAt ?? null,
-    })),
+    status: protectedProcedure.query(({ ctx }) => {
+      const TRIAL_DAYS = 30;
+      const trialStartedAt = ctx.user.createdAt;
+      const trialEndsAt = new Date(trialStartedAt.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
+      const now = new Date();
+      const trialActive = now < trialEndsAt;
+      const trialDaysRemaining = Math.max(0, Math.ceil((trialEndsAt.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)));
+
+      return {
+        hasPurchased: ctx.user.hasPurchased ?? false,
+        trialActive,
+        trialDaysRemaining,
+        trialEndsAt,
+      };
+    }),
 
     // Called from the client after RevenueCat confirms the purchase,
     // so the backend stays in sync without waiting for the webhook.
