@@ -26,6 +26,7 @@ const RC_API_KEY_ANDROID = import.meta.env.VITE_REVENUECAT_ANDROID_KEY ?? "";
 interface PurchaseContextType {
   hasPurchased: boolean;
   isLoading: boolean;
+  isTrialEligible: boolean;
   purchase: () => Promise<void>;
   restore: () => Promise<void>;
 }
@@ -39,6 +40,7 @@ const PurchaseContext = createContext<PurchaseContextType | undefined>(undefined
 export function PurchaseProvider({ children }: { children: React.ReactNode }) {
   const [hasPurchased, setHasPurchased] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isTrialEligible, setIsTrialEligible] = useState(true);
 
   const confirmMutation = trpc.purchase.confirm.useMutation();
 
@@ -90,10 +92,19 @@ export function PurchaseProvider({ children }: { children: React.ReactNode }) {
 
   const checkEntitlement = useCallback(async () => {
     try {
-      const { Purchases } = await import("@revenuecat/purchases-capacitor");
+      const { Purchases, INTRO_ELIGIBILITY_STATUS } = await import("@revenuecat/purchases-capacitor");
       const { customerInfo } = await Purchases.getCustomerInfo();
       const isActive = Boolean(customerInfo.entitlements.active[ENTITLEMENT_ID]);
       setHasPurchased(isActive);
+
+      // Check if this Apple ID is still eligible for a free trial.
+      // Apple ties intro offers to the Apple ID — deleting and reinstalling
+      // does NOT reset eligibility. INELIGIBLE means they already used it.
+      const eligibilityMap = await Purchases.checkTrialOrIntroductoryPriceEligibility({
+        productIdentifiers: [PURCHASE_PRODUCT_ID],
+      });
+      const status = eligibilityMap[PURCHASE_PRODUCT_ID]?.status;
+      setIsTrialEligible(status !== INTRO_ELIGIBILITY_STATUS.INTRO_ELIGIBILITY_STATUS_INELIGIBLE);
     } catch (err) {
       console.error("[Purchase] Entitlement check failed:", err);
     } finally {
@@ -139,8 +150,8 @@ export function PurchaseProvider({ children }: { children: React.ReactNode }) {
   }, [confirmMutation]);
 
   const value = useMemo<PurchaseContextType>(
-    () => ({ hasPurchased, isLoading, purchase, restore }),
-    [hasPurchased, isLoading, purchase, restore]
+    () => ({ hasPurchased, isLoading, isTrialEligible, purchase, restore }),
+    [hasPurchased, isLoading, isTrialEligible, purchase, restore]
   );
 
   return (
