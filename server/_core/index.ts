@@ -33,7 +33,7 @@ function corsMiddleware(req: Request, res: Response, next: NextFunction) {
     if (origin) res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Access-Control-Allow-Credentials", "true");
     res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type,trpc-accept");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type,trpc-accept,Authorization");
     res.setHeader("Vary", "Origin");
   }
   if (req.method === "OPTIONS") {
