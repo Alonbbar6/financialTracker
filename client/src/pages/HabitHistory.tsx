@@ -73,17 +73,17 @@ export default function HabitHistory() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b bg-card">
-        <div className="container py-6">
-          <div className="flex items-center gap-4">
+      <header className="border-b bg-card safe-area-top">
+        <div className="container py-4">
+          <div className="flex items-center gap-3">
             <Link href="/habits">
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" className="shrink-0">
                 <ArrowLeft className="h-5 w-5" />
               </Button>
             </Link>
-            <div className="flex-1">
-              <h1 className="text-3xl font-bold">{habit.name}</h1>
-              <p className="text-muted-foreground mt-1">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl font-bold truncate">{habit.name}</h1>
+              <p className="text-muted-foreground text-sm">
                 {bucket?.name} • {habit.frequency}
               </p>
             </div>

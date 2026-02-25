@@ -72,25 +72,25 @@ export default function Journey() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b bg-card">
-        <div className="container py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+      <header className="border-b bg-card safe-area-top">
+        <div className="container py-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
               <Link href="/">
-                <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" className="shrink-0">
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
               </Link>
-              <div>
-                <h1 className="text-3xl font-bold">Journey</h1>
-                <p className="text-muted-foreground mt-1">Reflect on your financial growth</p>
+              <div className="min-w-0">
+                <h1 className="text-2xl font-bold truncate">Journey</h1>
+                <p className="text-muted-foreground text-sm">Reflect on your financial growth</p>
               </div>
             </div>
-            
+
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
+                <Button size="sm" className="shrink-0">
+                  <Plus className="h-4 w-4 mr-1" />
                   New Entry
                 </Button>
               </DialogTrigger>

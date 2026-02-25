@@ -102,30 +102,30 @@ export default function Timeline() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b bg-card">
-        <div className="container py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+      <header className="border-b bg-card safe-area-top">
+        <div className="container py-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
               <Link href="/">
-                <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" className="shrink-0">
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
               </Link>
-              <div>
-                <h1 className="text-3xl font-bold">Timeline</h1>
-                <p className="text-muted-foreground mt-1">Track your daily, weekly, and monthly expenses</p>
+              <div className="min-w-0">
+                <h1 className="text-2xl font-bold truncate">Timeline</h1>
+                <p className="text-muted-foreground text-sm">Daily, weekly &amp; monthly view</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={goToToday}>
+            <div className="flex items-center gap-1 shrink-0">
+              <Button variant="outline" size="sm" onClick={goToToday}>
                 Today
               </Button>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline">
-                    <CalendarIcon className="h-4 w-4 mr-2" />
-                    {format(selectedDate, "MMM dd, yyyy")}
+                  <Button variant="outline" size="sm">
+                    <CalendarIcon className="h-4 w-4 mr-1" />
+                    {format(selectedDate, "MMM d")}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="end">
