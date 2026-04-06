@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -20,8 +20,11 @@ export default function Dashboard() {
   const { data: buckets } = trpc.buckets.list.useQuery();
   const { data: transactions } = trpc.transactions.list.useQuery();
   const utils = trpc.useUtils();
+  const [showDemoCard, setShowDemoCard] = useState(() => !localStorage.getItem("qt_demo_loaded"));
   const seedMutation = trpc.demo.seed.useMutation({
     onSuccess: () => {
+      localStorage.setItem("qt_demo_loaded", "true");
+      setShowDemoCard(false);
       utils.buckets.list.invalidate();
       utils.transactions.list.invalidate();
       utils.goals.list.invalidate();
@@ -173,7 +176,7 @@ export default function Dashboard() {
       {/* Main Content */}
       <main className="container py-8">
         {/* Demo seed banner — only visible on an empty account */}
-        {transactions !== undefined && transactions.length === 0 && (
+        {showDemoCard && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
