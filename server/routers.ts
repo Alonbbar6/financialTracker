@@ -360,6 +360,105 @@ export const appRouter = router({
       }),
   }),
 
+  // Demo / screenshot seed data
+  demo: router({
+    seed: protectedProcedure.mutation(async ({ ctx }) => {
+      const userId = ctx.user.id;
+
+      const userBuckets = await db.getUserBuckets(userId);
+      if (userBuckets.length === 0) throw new Error("No buckets found. Complete onboarding first.");
+
+      const now = new Date();
+      const ago = (d: number) => new Date(now.getTime() - d * 24 * 60 * 60 * 1000);
+      const future = (d: number) => new Date(now.getTime() + d * 24 * 60 * 60 * 1000);
+
+      // Match buckets by name keyword, fall back to index
+      const find = (keyword: string, idx: number) =>
+        userBuckets.find(b => b.name.toLowerCase().includes(keyword)) ?? userBuckets[idx] ?? userBuckets[0];
+
+      const ess  = find("essential", 0);
+      const life = find("lifestyle", 1);
+      const sav  = find("saving",    2);
+      const give = find("giving",    3);
+      const fun  = find("fun",       4);
+
+      // ── Income (allocates 20% to each bucket) ──────────────────────────────
+      const incomes: { amount: string; desc: string; date: Date }[] = [
+        { amount: "3500.00", desc: "Monthly Salary",     date: ago(30) },
+        { amount: "250.00",  desc: "Freelance Project",  date: ago(15) },
+      ];
+
+      // Clone allocated values so we can mutate in-memory
+      const allocated: Record<number, number> = {};
+      for (const bkt of userBuckets) allocated[bkt.id] = parseFloat(bkt.allocated ?? "0");
+
+      for (const inc of incomes) {
+        await db.createTransaction({
+          userId,
+          bucketId: ess.id,
+          type: "INCOME",
+          amount: inc.amount,
+          category: "Planned",
+          description: inc.desc,
+          date: inc.date,
+          isRecurring: false,
+        });
+        const perBucket = parseFloat(inc.amount) / userBuckets.length;
+        for (const bkt of userBuckets) {
+          allocated[bkt.id] += perBucket;
+          await db.updateBucketAllocation(bkt.id, allocated[bkt.id].toFixed(2));
+        }
+      }
+
+      // ── Expenses ────────────────────────────────────────────────────────────
+      const expenses: { amount: string; desc: string; date: Date; bucketId: number; category: "Planned" | "Unplanned" | "Impulse" }[] = [
+        { amount: "1200.00", desc: "Rent",              date: ago(30), bucketId: ess.id,  category: "Planned"   },
+        { amount: "85.00",   desc: "Electricity Bill",  date: ago(25), bucketId: ess.id,  category: "Planned"   },
+        { amount: "120.00",  desc: "Groceries",         date: ago(22), bucketId: ess.id,  category: "Planned"   },
+        { amount: "45.00",   desc: "Phone Bill",        date: ago(20), bucketId: ess.id,  category: "Planned"   },
+        { amount: "40.00",   desc: "Gym Membership",    date: ago(30), bucketId: life.id, category: "Planned"   },
+        { amount: "45.00",   desc: "Netflix + Spotify", date: ago(28), bucketId: life.id, category: "Planned"   },
+        { amount: "65.00",   desc: "Restaurant Dinner", date: ago(18), bucketId: life.id, category: "Unplanned" },
+        { amount: "28.00",   desc: "Coffee Shop",       date: ago(12), bucketId: life.id, category: "Impulse"   },
+        { amount: "50.00",   desc: "Charity Donation",  date: ago(20), bucketId: give.id, category: "Planned"   },
+        { amount: "35.00",   desc: "Movie Tickets",     date: ago(14), bucketId: fun.id,  category: "Planned"   },
+        { amount: "89.00",   desc: "New Sneakers",      date: ago(8),  bucketId: fun.id,  category: "Impulse"   },
+      ];
+
+      for (const exp of expenses) {
+        await db.createTransaction({
+          userId,
+          bucketId: exp.bucketId,
+          type: "EXPENSE",
+          amount: exp.amount,
+          category: exp.category,
+          description: exp.desc,
+          date: exp.date,
+          isRecurring: false,
+        });
+      }
+
+      // ── Goals ───────────────────────────────────────────────────────────────
+      await db.createGoal({ userId, bucketId: sav.id,  name: "Emergency Fund",  targetAmount: "5000.00", currentAmount: "1200.00", targetDate: future(180) });
+      await db.createGoal({ userId, bucketId: fun.id,  name: "Europe Vacation", targetAmount: "3000.00", currentAmount: "850.00",  targetDate: future(270) });
+      await db.createGoal({ userId, bucketId: life.id, name: "New MacBook",     targetAmount: "1500.00", currentAmount: "400.00",  targetDate: future(90)  });
+
+      // ── Habits ──────────────────────────────────────────────────────────────
+      await db.createHabit({ userId, name: "Morning Coffee",    frequency: "daily",   price: "5.00",  bucketId: life.id, type: "EXPENSE" });
+      await db.createHabit({ userId, name: "Cook at Home",      frequency: "daily",   price: "12.00", bucketId: ess.id,  type: "INCOME"  });
+      await db.createHabit({ userId, name: "Side Project Work", frequency: "weekly",  price: "50.00", bucketId: sav.id,  type: "INCOME"  });
+
+      // ── Journal ─────────────────────────────────────────────────────────────
+      await db.createJournalEntry({
+        userId,
+        content: "March has been a solid month overall. Rent hit hard as always but I stayed within my lifestyle budget. The impulse coffee spending is something I want to watch — I notice it spikes when I have afternoon slumps. Goal for April: meal prep on Sundays to cut the unplanned restaurant visits.",
+        financialSnapshot: { totalIncome: 3750, totalExpenses: 1757, net: 1993 },
+      });
+
+      return { success: true };
+    }),
+  }),
+
   // Purchase + trial status
   purchase: router({
     status: protectedProcedure.query(({ ctx }) => {

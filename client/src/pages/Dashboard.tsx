@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Link, useLocation } from "wouter";
-import { ArrowDown, ArrowUp, Plus, AlertTriangle, LogOut, Sparkles } from "lucide-react";
+import { ArrowDown, ArrowUp, Plus, AlertTriangle, LogOut, Sparkles, FlaskConical } from "lucide-react";
 import { motion } from "framer-motion";
 import { FinancialProgressChart } from "@/components/FinancialProgressChart";
 import { getLoginUrl } from "@/const";
@@ -19,10 +19,27 @@ export default function Dashboard() {
 
   const { data: buckets } = trpc.buckets.list.useQuery();
   const { data: transactions } = trpc.transactions.list.useQuery();
+  const utils = trpc.useUtils();
+  const seedMutation = trpc.demo.seed.useMutation({
+    onSuccess: () => {
+      utils.buckets.list.invalidate();
+      utils.transactions.list.invalidate();
+      utils.goals.list.invalidate();
+      utils.habits.list.invalidate();
+      utils.journal.list.invalidate();
+    },
+  });
 
   // Check onboarding status
+  // On native, use localStorage so this works even before server auth resolves.
   useEffect(() => {
-    if (!loading && user && !user.hasCompletedOnboarding) {
+    if (loading) return;
+    if (isNative) {
+      if (!localStorage.getItem("qt_onboarding_done")) {
+        setLocation("/onboarding");
+        return;
+      }
+    } else if (user && !user.hasCompletedOnboarding) {
       setLocation("/onboarding");
     }
   }, [user, loading, setLocation]);
@@ -35,17 +52,9 @@ export default function Dashboard() {
     );
   }
 
-  if (!user) {
-    const handleSignIn = async () => {
-      const url = getLoginUrl();
-      if (isNative) {
-        const { Browser } = await import("@capacitor/browser");
-        await Browser.open({ url });
-      } else {
-        window.location.href = url;
-      }
-    };
-
+  // On native the device auto-login in native.ts ensures user is always set.
+  // On web, show the sign-in card if somehow unauthenticated.
+  if (!user && !isNative) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="max-w-md w-full shadow-soft">
@@ -54,7 +63,7 @@ export default function Dashboard() {
             <CardDescription>Sign in to access your finance dashboard.</CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center pb-6">
-            <Button onClick={handleSignIn} className="bg-brand-gradient text-white hover:opacity-90">
+            <Button onClick={() => { window.location.href = getLoginUrl(); }} className="bg-brand-gradient text-white hover:opacity-90">
               Sign in with Google
             </Button>
           </CardContent>
@@ -153,7 +162,7 @@ export default function Dashboard() {
               <Link href="/subscribe">
                 <Button size="sm" className="bg-brand-gradient text-white h-7 text-xs px-3 shrink-0">
                   <Sparkles className="h-3 w-3 mr-1" />
-                  Subscribe
+                  Unlock — $8
                 </Button>
               </Link>
             </div>
@@ -163,6 +172,34 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <main className="container py-8">
+        {/* Demo seed banner — only visible on an empty account */}
+        {transactions !== undefined && transactions.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6"
+          >
+            <Card className="border-dashed border-2 border-primary/30 bg-primary/5">
+              <CardContent className="py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div>
+                  <p className="font-semibold text-sm">Load demo data</p>
+                  <p className="text-xs text-muted-foreground">Populate your account with sample transactions, goals and habits for screenshots.</p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="shrink-0"
+                  disabled={seedMutation.isPending}
+                  onClick={() => seedMutation.mutate()}
+                >
+                  <FlaskConical className="h-4 w-4 mr-2" />
+                  {seedMutation.isPending ? "Loading…" : "Load Demo Data"}
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <motion.div
