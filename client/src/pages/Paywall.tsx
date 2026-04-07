@@ -16,7 +16,7 @@ const FEATURES = [
 ];
 
 export default function Paywall() {
-  const { purchase, restore, trialActive } = usePurchase();
+  const { purchase, restore, trialActive, trialDaysRemaining } = usePurchase();
   const [, setLocation] = useLocation();
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
@@ -25,7 +25,7 @@ export default function Paywall() {
     setIsPurchasing(true);
     try {
       await purchase();
-      toast.success("Subscribed! Welcome to Quintave.");
+      toast.success("Purchase successful! Welcome to Quintave.");
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Purchase failed";
       if (!message.includes("UserCancelled") && !message.includes("purchaseCancelled")) {
@@ -56,7 +56,7 @@ export default function Paywall() {
         transition={{ duration: 0.4 }}
         className="w-full max-w-sm space-y-6"
       >
-        {/* Back button — only when user navigated here voluntarily during trial */}
+        {/* Back button — only when trial is still active */}
         {trialActive && (
           <button
             onClick={() => setLocation("/")}
@@ -80,8 +80,8 @@ export default function Paywall() {
           <h1 className="text-3xl font-bold tracking-tight">Quintave</h1>
           <p className="text-muted-foreground text-sm">
             {trialActive
-              ? "Unlock the full Quintave experience."
-              : "Your free trial has ended. Subscribe to keep going."}
+              ? `${trialDaysRemaining} day${trialDaysRemaining !== 1 ? "s" : ""} left in your free trial.`
+              : "Your free trial has ended. Unlock Quintave for life."}
           </p>
         </div>
 
@@ -107,14 +107,13 @@ export default function Paywall() {
         <Card className="border-2 border-primary shadow-soft-lg">
           <CardHeader className="pb-2 pt-5 text-center">
             <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">
-              Monthly
+              One-Time Purchase
             </p>
             <div className="flex items-baseline justify-center gap-1">
-              <span className="text-4xl font-bold">$4.99</span>
-              <span className="text-muted-foreground">/mo</span>
+              <span className="text-4xl font-bold">$8</span>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Cancel anytime
+              Pay once, own it forever
             </p>
           </CardHeader>
           <CardContent className="pb-5">
@@ -124,7 +123,7 @@ export default function Paywall() {
               className="w-full bg-brand-gradient text-white hover:opacity-90 transition-opacity font-semibold"
               size="lg"
             >
-              {isPurchasing ? "Processing..." : "Subscribe — $4.99/mo"}
+              {isPurchasing ? "Processing..." : "Get Quintave — $8"}
             </Button>
           </CardContent>
         </Card>
@@ -139,9 +138,8 @@ export default function Paywall() {
             {isRestoring ? "Restoring..." : "Restore Purchase"}
           </button>
           <p className="text-xs text-muted-foreground px-2 leading-relaxed">
-            Payment will be charged to your Apple ID. Subscription renews at
-            $4.99/month unless cancelled at least 24 hours before the renewal
-            date. Subscriptions may be managed in your Apple ID Account Settings.
+            Payment of $8.00 will be charged to your Apple ID account at confirmation
+            of purchase. This is a one-time payment — no subscriptions, no recurring charges.
           </p>
         </div>
       </motion.div>

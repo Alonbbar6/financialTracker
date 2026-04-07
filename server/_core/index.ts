@@ -9,6 +9,8 @@ import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import * as db from "../db";
 import { ENV } from "./env";
+import { sdk } from "./sdk";
+import { ONE_YEAR_MS } from "@shared/const";
 
 const ALLOWED_ORIGINS = [
   // Local dev
@@ -73,6 +75,28 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
+
+  // Silent device login for native iOS — no Google required.
+  // Accepts a device UUID, creates/finds the account, returns a JWT.
+  app.post("/api/auth/device", async (req: Request, res: Response) => {
+    const { deviceId } = req.body ?? {};
+    if (!deviceId || typeof deviceId !== "string" || deviceId.length > 128) {
+      res.status(400).json({ error: "Invalid deviceId" });
+      return;
+    }
+    try {
+      const openId = `device:${deviceId}`;
+      await db.upsertUser({ openId, loginMethod: "device", name: "Quintave User" });
+      const token = await sdk.createSessionToken(openId, {
+        name: "Quintave User",
+        expiresInMs: ONE_YEAR_MS,
+      });
+      res.json({ token });
+    } catch (error) {
+      console.error("[DeviceAuth] Failed:", error);
+      res.status(500).json({ error: "Device login failed" });
+    }
+  });
 
   // RevenueCat webhook — called when a purchase is completed on device
   app.post(

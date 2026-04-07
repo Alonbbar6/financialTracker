@@ -14,19 +14,14 @@ export async function initializeNativePlugins(): Promise<void> {
       import("@capacitor/keyboard"),
     ]);
 
-  // Hide splash screen once the app is ready
   await SplashScreen.hide({ fadeOutDuration: 300 });
-
-  // Configure status bar
   await StatusBar.setStyle({ style: Style.Light });
   await StatusBar.setBackgroundColor({ color: "#F7F9FC" });
 
-  // Android: ensure status bar is visible
   if (Capacitor.getPlatform() === "android") {
     await StatusBar.show();
   }
 
-  // Shift body when keyboard opens so inputs stay visible
   Keyboard.addListener("keyboardWillShow", () => {
     document.body.classList.add("keyboard-open");
   });

@@ -66,6 +66,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "cookie": "^1.0.2",
+    "cordova-plugin-purchase": "^13.13.1",
     "cors": "^2.8.6",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.2",
