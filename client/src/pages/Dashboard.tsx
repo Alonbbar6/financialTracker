@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Link, useLocation } from "wouter";
-import { ArrowDown, ArrowUp, Plus, AlertTriangle, LogOut, Sparkles, FlaskConical } from "lucide-react";
+import { ArrowDown, ArrowUp, Plus, AlertTriangle, LogOut, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import { FinancialProgressChart } from "@/components/FinancialProgressChart";
 import { getLoginUrl } from "@/const";
@@ -19,19 +19,6 @@ export default function Dashboard() {
 
   const { data: buckets } = trpc.buckets.list.useQuery();
   const { data: transactions } = trpc.transactions.list.useQuery();
-  const utils = trpc.useUtils();
-  const [showDemoCard, setShowDemoCard] = useState(() => !localStorage.getItem("qt_demo_loaded"));
-  const seedMutation = trpc.demo.seed.useMutation({
-    onSuccess: () => {
-      localStorage.setItem("qt_demo_loaded", "true");
-      setShowDemoCard(false);
-      utils.buckets.list.invalidate();
-      utils.transactions.list.invalidate();
-      utils.goals.list.invalidate();
-      utils.habits.list.invalidate();
-      utils.journal.list.invalidate();
-    },
-  });
 
   // Check onboarding status
   // On native, use localStorage so this works even before server auth resolves.
@@ -175,34 +162,6 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <main className="container py-8">
-        {/* Demo seed banner — only visible on an empty account */}
-        {showDemoCard && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6"
-          >
-            <Card className="border-dashed border-2 border-primary/30 bg-primary/5">
-              <CardContent className="py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div>
-                  <p className="font-semibold text-sm">Load demo data</p>
-                  <p className="text-xs text-muted-foreground">Populate your account with sample transactions, goals and habits for screenshots.</p>
-                </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="shrink-0"
-                  disabled={seedMutation.isPending}
-                  onClick={() => seedMutation.mutate()}
-                >
-                  <FlaskConical className="h-4 w-4 mr-2" />
-                  {seedMutation.isPending ? "Loading…" : "Load Demo Data"}
-                </Button>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
-
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <motion.div

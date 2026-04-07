@@ -167,9 +167,13 @@ export default function Transactions() {
                       id="amount"
                       type="number"
                       step="0.01"
+                      min="0.01"
                       placeholder="0.00"
                       value={formData.amount}
-                      onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                      onChange={(e) => {
+                        const val = e.target.value.replace("-", "");
+                        setFormData({ ...formData, amount: val });
+                      }}
                       required
                     />
                   </div>
